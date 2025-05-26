@@ -1,0 +1,18 @@
+Scenerios:
+
+Scenario 1:
+1. user opens app
+2. user clicks get started
+3. app ask user's intro questions to determine workout 
+4. app displays homepage of user's workout plan
+5. 
+
+Scenario 2:
+1. user opens app
+2. user clicks login
+3. app autofills stored login information
+4. user logs in
+5. app displays homepage
+
+Scenario 3: 
+

@@ -1,0 +1,7 @@
+Interactions:
+1. open app
+2. user inputs their information
+3. user clicks enter button to generate account
+4. user specifies minutes for workout 
+5. user starts timer
+6. user pauses/cancels workout timer

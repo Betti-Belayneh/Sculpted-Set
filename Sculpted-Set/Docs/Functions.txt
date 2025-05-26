@@ -1,0 +1,12 @@
+Functions.md
+
+1. Login/Sign-Up
+2. Set timer for workout
+3. Determine level of intensity for workout
+4. Track workouts throughout the week/month
+5. Track progress such as calories burned and weight loss
+6. Ask user if they want workouts added to calendar
+7. Siri asks the user every ten minutes how the user is doing, if they want a 30 second break
+8. Siri reminds user to hydrate (drink water)
+9. Siri generates a playlist based on user's apple music and how long they want to work out for
+10.Siri generates workout based on chosen level 
