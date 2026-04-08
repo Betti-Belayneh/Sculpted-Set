@@ -1,7 +1,7 @@
 //
 //  TimerView.swift
 //  Fitnessapp
-//created by Betti
+// created by Betti
 //
 
 import SwiftUI
@@ -15,9 +15,11 @@ struct ExerciseInfo {
 
 struct TimerView: View {
     @StateObject private var timerService = TimerService()
+    @StateObject private var musicService = MusicService()
     @EnvironmentObject var workoutStore: WorkoutStore
     @State private var showSetup = true
     @State private var showSaveRoutine = false
+    @State private var showMusicPicker = false
     @State private var routineName = ""
     @State private var showCompletionSheet = false
     @State private var isHydrationBreak = false
@@ -104,6 +106,9 @@ struct TimerView: View {
         }
         .sheet(isPresented: $showSaveRoutine) { saveRoutineSheet }
         .sheet(isPresented: $showCompletionSheet) { completionSheet }
+        .sheet(isPresented: $showMusicPicker) {
+            MusicPickerView(musicService: musicService, isPresented: $showMusicPicker)
+        }
         .onChange(of: timerService.isWorkoutComplete) { _, complete in
             if complete { showCompletionSheet = true }
         }
@@ -285,6 +290,19 @@ struct TimerView: View {
                 }
                 Text(timerService.selectedBodyPart).font(.title2).fontWeight(.bold).foregroundColor(accent)
                 Spacer()
+                // Music button
+                Button { showMusicPicker = true } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "music.note")
+                            .font(.system(size: 14))
+                        Text(musicService.selectedMood.isEmpty ? "Music" : musicService.selectedMood)
+                            .font(.caption).fontWeight(.semibold)
+                    }
+                    .foregroundColor(musicService.selectedMood.isEmpty ? .white.opacity(0.6) : accent)
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background(Color.white.opacity(0.08))
+                    .cornerRadius(10)
+                }
                 Text("\(timerService.selectedMins) min").font(.subheadline).foregroundColor(.white.opacity(0.6))
             }
             .padding(.horizontal).padding(.top, 10).padding(.bottom, 16)
@@ -479,4 +497,5 @@ struct TimerView: View {
 #Preview {
     TimerView().environmentObject(WorkoutStore())
 }
+
 
