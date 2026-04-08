@@ -1,59 +1,98 @@
+//
+//  LoginView.swift
+//  Fitnessapp
+//created by Betti
+//
+
 import SwiftUI
 
 struct LoginView: View {
+    @EnvironmentObject var signUpService: SignUpService
+    @Environment(\.dismiss) private var dismiss
+
     @State private var email: String = ""
     @State private var password: String = ""
-    
+    @State private var loginFailed = false
+    @State private var navigateToTabs = false
+
     var body: some View {
         ZStack {
-            LinearGradient(
-                gradient: Gradient(colors: [Color("darkPurple").opacity(0.8), Color.purple.opacity(0.2)]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
-            VStack(spacing: 30) {
+            Color(red: 0.18, green: 0.10, blue: 0.05)
+                .ignoresSafeArea()
+
+            VStack(spacing: 28) {
                 Spacer()
-                
-                // App Name
-                Text("Sculpted Set")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(Color(.systemGray6))
-              
-                VStack(spacing: 20) {
-                    TextField("Email", text: $email)
-                        .padding()
-                        .background(Color(.white))
-                        .cornerRadius(10)
-                        .padding(.horizontal)
-                    
-                    SecureField("Password", text: $password)
-                        .padding()
-                        .background(Color(.white))
-                        .cornerRadius(10)
-                        .padding(.horizontal)
+
+                // Header
+                VStack(spacing: 8) {
+                    Image(systemName: "figure.strengthtraining.traditional")
+                        .font(.system(size: 44))
+                        .foregroundColor(Color(red: 0.76, green: 0.49, blue: 0.27))
+
+                    Text("Welcome Back")
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+
+                    Text("Log in to continue your journey")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.6))
                 }
-                
-               
-                NavigationLink(destination: TabsView()) {
-                    Text("Login")
+
+                // Fields
+                VStack(spacing: 14) {
+                    TextField("", text: $email, prompt: Text("Email").foregroundColor(.black.opacity(0.4)))
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .foregroundColor(.black)
+                        .padding()
+                        .background(Color.white)
+                        .cornerRadius(12)
+                        .padding(.horizontal, 24)
+
+                    SecureField("", text: $password, prompt: Text("Password").foregroundColor(.black.opacity(0.4)))
+                        .foregroundColor(.black)
+                        .padding()
+                        .background(Color.white)
+                        .cornerRadius(12)
+                        .padding(.horizontal, 24)
+                }
+
+                if loginFailed {
+                    Text("Invalid email or password.")
+                        .foregroundColor(Color(red: 1, green: 0.4, blue: 0.4))
+                        .font(.subheadline)
+                }
+
+                // Login button
+                Button {
+                    let success = signUpService.loginUser(emailAddress: email, password: password)
+                    if success {
+                        navigateToTabs = true
+                    } else {
+                        loginFailed = true
+                    }
+                } label: {
+                    Text("Log In")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(Color(.purple))
-                        .foregroundColor(Color(.white))
-                        .cornerRadius(10)
-                        .padding(.horizontal)
+                        .frame(height: 56)
+                        .background(Color(red: 0.48, green: 0.25, blue: 0.10))
+                        .foregroundColor(.white)
+                        .cornerRadius(14)
+                        .padding(.horizontal, 24)
                 }
-                
+
+                NavigationLink("", destination: TabsView(signUpService: signUpService), isActive: $navigateToTabs)
+                    .hidden()
+
                 Spacer()
             }
         }
+        .navigationBarBackButtonHidden(false)
     }
 }
 
 #Preview {
     LoginView()
+        .environmentObject(SignUpService())
 }
