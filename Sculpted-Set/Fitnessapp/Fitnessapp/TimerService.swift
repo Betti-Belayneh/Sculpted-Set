@@ -1,91 +1,74 @@
-//
+/
 //  TimerService.swift
 //  Fitnessapp
 //
-//  Created by Miriam on 4/23/25.
+//  Created by Betti
 //
 
 import Foundation
 import AVFoundation
-import SwiftUI
 
 class TimerService: ObservableObject {
-    // Published variables 
-    @Published var selectedMins = 5
-    @Published var timeRemaining: TimeInterval = 300
+    @Published var selectedMins = 20
+    @Published var timeRemaining: TimeInterval = 1200
     @Published var isTimerRunning = false
     @Published var currentExerciseIndex = 0
     @Published var exerciseList: [(name: String, duration: Int)] = []
     @Published var isLastMin = false
+    @Published var selectedBodyPart: String = ""
+    @Published var isWorkoutComplete = false
 
-    // Private variables
     private var timer: Timer?
     private var audioPlayer: AVAudioPlayer?
 
-    
-    private let exercises: [String] = [
-        "Squats",
-        "Lunges",
-        "Leg Press",
-        "Calf Raises",
-        "Hamstring Curls",
-        "Wall Sit",
-        "Step-Ups",
-        "Donkey Kicks",
-        "Glute Bridge",
-        "Romanian Deadlift",
-        "Deadlift",
-        "Lying Hamstring Curls",
-        "Walking Lunges",
-        "Mountain Climbers",
-        "Jumping Squats",
-        "Reverse Lunges",
-        "Dumbbell Hipthrusts",
-        "Burpes",
-        "Walking Lunges with Weights",
-        "Single-Leg Deadlift",
-        "Clamshell",
-        "Banded Side-Step",
+    let exercisesByBodyPart: [String: [String]] = [
+        "Glutes": ["Glute Bridge", "Hip Thrust", "Donkey Kicks", "Fire Hydrants",
+                   "Cable Kickbacks", "Sumo Squats", "Bulgarian Split Squat",
+                   "Banded Side Steps", "Clamshells", "Single-Leg Glute Bridge",
+                   "Frog Pumps", "Dumbbell Hip Thrusts", "Reverse Hyperextensions"],
+        "Legs": ["Squats", "Lunges", "Leg Press", "Calf Raises", "Hamstring Curls",
+                 "Wall Sit", "Step-Ups", "Romanian Deadlift", "Lying Hamstring Curls",
+                 "Walking Lunges", "Reverse Lunges", "Jumping Squats",
+                 "Single-Leg Deadlift", "Leg Extensions"],
+        "Arms": ["Bicep Curls", "Hammer Curls", "Tricep Dips", "Tricep Pushdowns",
+                 "Overhead Tricep Extension", "Concentration Curls", "Preacher Curls",
+                 "Skull Crushers", "Zottman Curls", "Diamond Push-Ups",
+                 "Close-Grip Bench Press", "Cable Curls", "Rope Pushdowns"],
+        "Back": ["Deadlift", "Bent-Over Row", "Lat Pulldown", "Seated Cable Row",
+                 "Pull-Ups", "Face Pulls", "Single-Arm Dumbbell Row",
+                 "T-Bar Row", "Straight-Arm Pulldown", "Good Mornings",
+                 "Superman Hold", "Reverse Flyes", "Rack Pulls"],
+        "Core": ["Plank", "Crunches", "Bicycle Crunches", "Leg Raises",
+                 "Russian Twists", "Mountain Climbers", "Dead Bug",
+                 "Flutter Kicks", "Side Plank", "Hollow Body Hold",
+                 "Ab Wheel Rollout", "Cable Crunches", "Hanging Knee Raises"],
+        "Full Body": ["Burpees", "Deadlift", "Squats", "Pull-Ups", "Push-Ups",
+                      "Kettlebell Swings", "Clean and Press", "Thrusters",
+                      "Box Jumps", "Battle Ropes", "Dumbbell Snatch",
+                      "Man Makers", "Turkish Get-Up"]
     ]
-    
-    private let transitionSounds: [String] = [
-        "sound1",
-        "sound2",
-        "sound3",
-        "sound4"
-    ]
-    
-    init() {
-        generateWorkoutList()
-    }
 
-    // functionality 1: timer
+    private let transitionSounds = ["sound1", "sound2", "sound3", "sound4"]
+
     func startTimer() {
         isTimerRunning = true
+        isWorkoutComplete = false
         updateCurrentExercise()
 
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             guard let self = self else { return }
-            
-            if self.timeRemaining == 60 {
-                self.isLastMin = true
-                self.playMinSound()
-            }
+            if self.timeRemaining == 60 { self.isLastMin = true; self.playMinSound() }
             if self.timeRemaining > 0 {
-                let prevIndex = self.currentExerciseIndex
+                let prev = self.currentExerciseIndex
                 self.timeRemaining -= 1
                 self.updateCurrentExercise()
-                
-                
-                if (prevIndex != self.currentExerciseIndex){
-                    self.playTransitionSound()
-                }
-                
+                if prev != self.currentExerciseIndex { self.playTransitionSound() }
             } else {
                 self.stopTimer()
+                self.isWorkoutComplete = true
             }
         }
-    } 
+    }
 
     func stopTimer() {
         isTimerRunning = false
@@ -95,8 +78,11 @@ class TimerService: ObservableObject {
 
     func resetTimer() {
         stopTimer()
+        isWorkoutComplete = false
         timeRemaining = Double(selectedMins * 60)
-        generateWorkoutList()
+        currentExerciseIndex = 0
+        isLastMin = false
+        if !selectedBodyPart.isEmpty { generateWorkoutList() }
     }
 
     func timeString(_ time: TimeInterval) -> String {
@@ -105,105 +91,72 @@ class TimerService: ObservableObject {
         return String(format: "%02d:%02d", mins, secs)
     }
 
-
-
-    // functionality 2: creates workout based on timer 
     func updateWorkoutDuration(mins: Int) {
         selectedMins = mins
         timeRemaining = Double(mins * 60)
+        if !selectedBodyPart.isEmpty { generateWorkoutList() }
+    }
+
+    func selectBodyPart(_ bodyPart: String) {
+        selectedBodyPart = bodyPart
         generateWorkoutList()
     }
 
-    private func generateWorkoutList() {
+    func generateWorkoutList() {
+        let exercises = exercisesByBodyPart[selectedBodyPart] ?? exercisesByBodyPart["Full Body"]!
         var remainingMins = selectedMins
-        var selectedWorkouts = exercises.shuffled()
+        var shuffled = exercises.shuffled()
         var generatedList: [(String, Int)] = []
-    
+
         while remainingMins > 0 {
-            if selectedWorkouts.isEmpty {
-                selectedWorkouts = exercises.shuffled()
-            }
-            
+            if shuffled.isEmpty { shuffled = exercises.shuffled() }
             if remainingMins == 1 {
-                let workoutName = selectedWorkouts.removeFirst()
-                generatedList.append((workoutName, 1))
+                generatedList.append((shuffled.removeFirst(), 1))
                 remainingMins = 0
             } else {
-                //testing (change back to 2-6)
-                let maxDuration = min(1, remainingMins - 1)
-                let minDuration = min(1, remainingMins)
-                let randomDuration = Int.random(in: minDuration...maxDuration)
-                
-                let workoutName = selectedWorkouts.removeFirst()
-                generatedList.append((workoutName, randomDuration))
-                remainingMins -= randomDuration
+                let maxDuration = min(6, remainingMins - 1)
+                let minDuration = min(2, maxDuration)
+                guard minDuration <= maxDuration else {
+                    generatedList.append((shuffled.removeFirst(), remainingMins))
+                    break
+                }
+                let duration = Int.random(in: minDuration...maxDuration)
+                generatedList.append((shuffled.removeFirst(), duration))
+                remainingMins -= duration
             }
         }
-        
         self.exerciseList = generatedList
-    } 
+        self.currentExerciseIndex = 0
+    }
 
     func updateCurrentExercise() {
-        let elapsedSecs = Double(selectedMins * 60) - timeRemaining
-        let elapsedMins = Int(elapsedSecs / 60)
-
-        var minsAccumulated = 0
+        let elapsedMins = Int((Double(selectedMins * 60) - timeRemaining) / 60)
+        var accumulated = 0
         for (index, exercise) in exerciseList.enumerated() {
-            minsAccumulated += exercise.duration
-            if elapsedMins < minsAccumulated {
-                currentExerciseIndex = index
-                break
-            }
+            accumulated += exercise.duration
+            if elapsedMins < accumulated { currentExerciseIndex = index; break }
         }
     }
 
     func getCurrentExerciseElapsedTime() -> Double {
-        let totalSecs = Double(selectedMins * 60)
-        let remainingSecs = timeRemaining
-        let elapsedSecs = totalSecs - remainingSecs
-        
-        var minsAccumulated = 0
-        for i in 0 ..< currentExerciseIndex {
-            minsAccumulated += exerciseList[i].duration
-        }
-        
-        let exerciseStartSecs = Double(minsAccumulated * 60)
-        return elapsedSecs - exerciseStartSecs
+        let elapsed = Double(selectedMins * 60) - timeRemaining
+        var accumulated = 0
+        for i in 0..<currentExerciseIndex { accumulated += exerciseList[i].duration }
+        return elapsed - Double(accumulated * 60)
     }
-    
+
     func getOverallProgress() -> Double {
-        let totalSecs = Double(selectedMins * 60)
-        let remainingSecs = timeRemaining
-        return (totalSecs - remainingSecs) / totalSecs
+        let total = Double(selectedMins * 60)
+        return (total - timeRemaining) / total
     }
 
-    // functionality 3: play sound when 1 minute remaining of workout out 
-    func playMinSound() {
-        if let soundURL = Bundle.main.url(forResource: "princess-sound", withExtension: "mp3") {
-            do {
-                audioPlayer = try AVAudioPlayer(contentsOf: soundURL)
-                audioPlayer?.play()
-                print("SUCCESS: Last minute sound played")
-            } catch {
-                print("ERROR: sound failed to play")
-            }
+    func playMinSound() { playSound(named: "princess-sound") }
+    func playTransitionSound() { playSound(named: transitionSounds[Int.random(in: 0..<transitionSounds.count)]) }
+
+    private func playSound(named name: String) {
+        if let url = Bundle.main.url(forResource: name, withExtension: "mp3") {
+            do { audioPlayer = try AVAudioPlayer(contentsOf: url); audioPlayer?.play() }
+            catch { print("ERROR: sound failed - \(name)") }
         }
     }
-    
-   func playTransitionSound() {
-       let randomNum = Int.random(in: 0...transitionSounds.count-1)
-       let randomSound = transitionSounds[randomNum]
-        if let soundURL = Bundle.main.url(forResource: randomSound, withExtension: "mp3") {
-            do {
-                audioPlayer = try AVAudioPlayer(contentsOf: soundURL)
-                audioPlayer?.play()
-                print("SUCCESS: Transition sound played")
-            } catch {
-                print("ERROR: sound failed to play")
-            }
-        }
-    }
-
-
-
-}  //end of TimerService()
+}
